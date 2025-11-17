@@ -2,7 +2,7 @@ const axios = require('axios');
 
 async function shopifyAdminAPI(query, variables = {}) {
   const { data } = await axios.post(
-    `https://${process.env.SHOPIFY_STORE_DOMAIN}/admin/api/2024-01/graphql.json`,
+    `https://${process.env.SHOPIFY_STORE_DOMAIN}/admin/api/2024-10/graphql.json`,
     { query, variables },
     {
       headers: {
