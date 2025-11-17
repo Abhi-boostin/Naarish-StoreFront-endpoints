@@ -1,4 +1,4 @@
-const { shopifyStorefrontAPI } = require('../services/shopify');
+const { shopifyAdminAPI } = require('../services/shopifyAdmin');
 
 const getAllProducts = async (req, res) => {
   try {
@@ -11,17 +11,45 @@ const getAllProducts = async (req, res) => {
               title
               description
               handle
-              priceRange {
+              productType
+              vendor
+              tags
+              priceRangeV2 {
                 minVariantPrice {
                   amount
                   currencyCode
                 }
+                maxVariantPrice {
+                  amount
+                  currencyCode
+                }
               }
-              images(first: 5) {
+              images(first: 10) {
                 edges {
                   node {
                     url
                     altText
+                  }
+                }
+              }
+              metafields(first: 50) {
+                edges {
+                  node {
+                    namespace
+                    key
+                    value
+                    type
+                  }
+                }
+              }
+              variants(first: 50) {
+                edges {
+                  node {
+                    id
+                    title
+                    price
+                    availableForSale
+                    sku
                   }
                 }
               }
@@ -31,7 +59,7 @@ const getAllProducts = async (req, res) => {
       }
     `;
 
-    const result = await shopifyStorefrontAPI(query);
+    const result = await shopifyAdminAPI(query);
     res.json(result);
   } catch (error) {
     res.status(500).json({ error: error.message });
