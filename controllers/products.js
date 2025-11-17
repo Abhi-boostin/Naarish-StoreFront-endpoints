@@ -64,26 +64,21 @@ const getAllProducts = async (req, res) => {
 
     const result = await shopifyAdminAPI(query);
 
-    // Simplify the response
     const products = result.products.edges.map((edge) => {
       const product = edge.node;
-
-      // Convert metafields to simple key-value object
       const metafields = {};
+
       product.metafields.edges.forEach((metafieldEdge) => {
         const metafield = metafieldEdge.node;
         const key = metafield.key;
 
-        // Check if it's a metaobject reference
         if (metafield.references && metafield.references.edges.length > 0) {
-          // Multiple references (list)
           const values = metafield.references.edges.map((ref) => {
             const titleField = ref.node.fields.find((f) => f.key === 'title');
             return titleField ? titleField.value : ref.node.handle;
           });
           metafields[key] = values.join(', ');
         } else if (metafield.reference) {
-          // Single reference
           const titleField = metafield.reference.fields.find(
             (f) => f.key === 'title'
           );
@@ -91,12 +86,10 @@ const getAllProducts = async (req, res) => {
             ? titleField.value
             : metafield.reference.handle;
         } else {
-          // Regular value
           metafields[key] = metafield.value;
         }
       });
 
-      // Convert images to simple array
       const images = product.images.edges.map((img) => img.node.url);
 
       return {
