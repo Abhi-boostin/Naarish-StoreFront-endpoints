@@ -110,4 +110,116 @@ const getAllProducts = async (req, res) => {
   }
 };
 
-module.exports = { getAllProducts };
+const createProduct = async (req, res) => {
+  try {
+    const { title, description, price, vendor, images } = req.body;
+
+    const mutation = `
+      mutation createProduct($input: ProductInput!) {
+        productCreate(input: $input) {
+          product {
+            id
+            title
+            description
+            handle
+            variants(first: 1) {
+              edges {
+                node {
+                  id
+                }
+              }
+            }
+          }
+          userErrors {
+            field
+            message
+          }
+        }
+      }
+    `;
+
+    const variables = {
+      input: {
+        title: title,
+        descriptionHtml: description || '',
+        vendor: vendor || 'Naarisha',
+      },
+    };
+
+    const result = await shopifyAdminAPI(mutation, variables);
+
+    if (result.productCreate.userErrors.length > 0) {
+      return res.status(400).json({
+        error: result.productCreate.userErrors[0].message,
+      });
+    }
+
+    const productId = result.productCreate.product.id;
+    const variantId =
+      result.productCreate.product.variants.edges[0].node.id;
+
+    if (price) {
+      const variantMutation = `
+        mutation productVariantsBulkUpdate($productId: ID!, $variants: [ProductVariantsBulkInput!]!) {
+          productVariantsBulkUpdate(productId: $productId, variants: $variants) {
+            productVariants {
+              id
+              price
+            }
+            userErrors {
+              field
+              message
+            }
+          }
+        }
+      `;
+
+      await shopifyAdminAPI(variantMutation, {
+        productId: productId,
+        variants: [
+          {
+            id: variantId,
+            price: price,
+          },
+        ],
+      });
+    }
+
+    if (images && images.length > 0) {
+      const imageMutation = `
+        mutation productCreateMedia($media: [CreateMediaInput!]!, $productId: ID!) {
+          productCreateMedia(media: $media, productId: $productId) {
+            media {
+              alt
+              mediaContentType
+            }
+            userErrors {
+              field
+              message
+            }
+          }
+        }
+      `;
+
+      const mediaInputs = images.map((img) => ({
+        originalSource: img,
+        mediaContentType: 'IMAGE',
+      }));
+
+      await shopifyAdminAPI(imageMutation, {
+        productId: productId,
+        media: mediaInputs,
+      });
+    }
+
+    res.json({
+      success: true,
+      product: result.productCreate.product,
+      message: 'Product created successfully',
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+module.exports = { getAllProducts, createProduct };
