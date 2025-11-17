@@ -30,6 +30,29 @@ const getAllProducts = async (req, res) => {
                   node {
                     key
                     value
+                    type
+                    reference {
+                      ... on Metaobject {
+                        handle
+                        fields {
+                          key
+                          value
+                        }
+                      }
+                    }
+                    references(first: 10) {
+                      edges {
+                        node {
+                          ... on Metaobject {
+                            handle
+                            fields {
+                              key
+                              value
+                            }
+                          }
+                        }
+                      }
+                    }
                   }
                 }
               }
@@ -47,8 +70,30 @@ const getAllProducts = async (req, res) => {
 
       // Convert metafields to simple key-value object
       const metafields = {};
-      product.metafields.edges.forEach((metafield) => {
-        metafields[metafield.node.key] = metafield.node.value;
+      product.metafields.edges.forEach((metafieldEdge) => {
+        const metafield = metafieldEdge.node;
+        const key = metafield.key;
+
+        // Check if it's a metaobject reference
+        if (metafield.references && metafield.references.edges.length > 0) {
+          // Multiple references (list)
+          const values = metafield.references.edges.map((ref) => {
+            const titleField = ref.node.fields.find((f) => f.key === 'title');
+            return titleField ? titleField.value : ref.node.handle;
+          });
+          metafields[key] = values.join(', ');
+        } else if (metafield.reference) {
+          // Single reference
+          const titleField = metafield.reference.fields.find(
+            (f) => f.key === 'title'
+          );
+          metafields[key] = titleField
+            ? titleField.value
+            : metafield.reference.handle;
+        } else {
+          // Regular value
+          metafields[key] = metafield.value;
+        }
       });
 
       // Convert images to simple array
